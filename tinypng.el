@@ -77,7 +77,7 @@
       (if .error
           (error "%s: %s" .error .message)
         (url-copy-file .output.url to t)
-        (message "%s (%s) -> %s (%s) %s"
+        (message "Success! %s (%s) -> %s (%s)     %s"
                  from (file-size-human-readable .input.size 'iec)
                  to (file-size-human-readable .output.size 'iec)
                  (format "-%.0f%%" (* 100 (- 1 .output.ratio))))))))
