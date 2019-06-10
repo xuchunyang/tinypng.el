@@ -31,15 +31,35 @@
 (require 'json)
 (require 'url)
 
+(declare-function dired-get-filename "dired")
+
 (defvar tinypng-api-key
   (let ((plist (car (auth-source-search :max 1 :host "api.tinify.com"))))
     (let ((v (plist-get plist :secret)))
       (if (functionp v) (funcall v) v)))
   "Your API key.")
 
+(defun tinypng--read-args ()
+  (let* ((file-at-point (pcase major-mode
+                          ('dired-mode (dired-get-filename nil t))
+                          (_ (thing-at-point 'filename))))
+         (valid (lambda (f)
+                  (and (file-exists-p f)
+                       (let ((case-fold-search t))
+                         (string-match-p (rx "." (or "png" "jpg" "jpeg")) f)))))
+         (default (and file-at-point
+                       (funcall valid file-at-point)
+                       file-at-point))
+         (prompt (if default
+                     (format "Compress image (default %s): " default)
+                   "Compress image: "))
+         (from (read-file-name prompt nil default t))
+         (to (read-file-name (format "Compress %s and save to (default %s): " from from) nil from)))
+    (list from to)))
+
 (defun tinypng (from to)
   "Compress .png or jpeg file FROM and save the compressed file as TO."
-  (interactive "fCompress .png or .jpeg: \nFSave to: ")
+  (interactive (tinypng--read-args))
   (with-current-buffer
       (let ((url-request-method "POST")
             (url-request-extra-headers
