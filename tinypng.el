@@ -73,7 +73,6 @@
     (set-buffer-multibyte nil)
     (goto-char (point-min))
     (re-search-forward "^\r?\n")
-    (display-buffer (current-buffer))
     (let-alist (json-read)
       (if .error
           (error "%s: %s" .error .message)
