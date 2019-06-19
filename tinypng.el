@@ -33,11 +33,22 @@
 
 (declare-function dired-get-filename "dired")
 
-(defvar tinypng-api-key
-  (let ((plist (car (auth-source-search :max 1 :host "api.tinify.com"))))
-    (let ((v (plist-get plist :secret)))
-      (if (functionp v) (funcall v) v)))
+(defvar tinypng-api-key nil
   "Your API key.")
+
+(defun tinypng--read-token ()
+  (let* ((plist (let ((auth-source-creation-prompts
+                       '((secret . "Paste your API key of %h: "))))
+                  (car (auth-source-search :host "api.tinify.com"
+                                           :user "tinypng.el"
+                                           :max 1
+                                           :create t))))
+         (save (plist-get plist :save-function))
+         (token (plist-get plist :secret)))
+    (and (functionp save) (funcall save))
+    (if (functionp token)
+        (funcall token)
+      token)))
 
 (defun tinypng--read-args ()
   (let* ((file-at-point (pcase major-mode
@@ -57,9 +68,12 @@
          (to (read-file-name (format "Compress %s and save to (default %s): " from from) nil from)))
     (list from to)))
 
+;;;###autoload
 (defun tinypng (from to)
   "Compress .png or jpeg file FROM and save the compressed file as TO."
   (interactive (tinypng--read-args))
+  (unless tinypng-api-key
+    (setq tinypng-api-key (tinypng--read-token)))
   (with-current-buffer
       (let ((url-request-method "POST")
             (url-request-extra-headers
