@@ -52,6 +52,10 @@
 
 (defun tinypng--read-args ()
   (let* ((file-at-point (pcase major-mode
+                          ;; The ' pattern requires Emacs-25.1, the ` pattern
+                          ;; works for older versions of Emacs, but I has no
+                          ;; interest in supporting old versions.
+                          ('image-mode buffer-file-name)
                           ('dired-mode (dired-get-filename nil t))
                           (_ (thing-at-point 'filename))))
          (valid (lambda (f)
