@@ -33,10 +33,8 @@
 
 (declare-function dired-get-filename "dired")
 
-(defvar tinypng-api-key nil
-  "Your API key.")
-
 (defun tinypng--read-token ()
+  "Read and return your API key."
   (let* ((plist (let ((auth-source-creation-prompts
                        '((secret . "Paste your API key of %h: "))))
                   (car (auth-source-search :host "api.tinify.com"
@@ -50,7 +48,7 @@
         (funcall token)
       token)))
 
-(defun tinypng--read-args ()
+(defun tinypng--read-from-and-to ()
   (let* ((file-at-point (pcase major-mode
                           ;; The ' pattern requires Emacs-25.1, the ` pattern
                           ;; works for older versions of Emacs, but I has no
@@ -69,20 +67,27 @@
                      (format "Compress image (default %s): " default)
                    "Compress image: "))
          (from (read-file-name prompt nil default t))
-         (to (read-file-name (format "Compress %s and save to (default %s): " from from) nil from)))
+         (to (read-file-name
+              (format "Compress %s and save to (default %s): " from from)
+              nil from)))
     (list from to)))
 
 ;;;###autoload
-(defun tinypng (from to)
-  "Compress .png or jpeg file FROM and save the compressed file as TO."
-  (interactive (tinypng--read-args))
-  (unless tinypng-api-key
-    (setq tinypng-api-key (tinypng--read-token)))
+(defun tinypng (token from to)
+  "Compress PNG or JEPG image.
+
+TOKEN is your API key.
+FROM is the input filename.
+TO is the output filename.
+FROM and TO can be the same, in this case, FROM is overwritten."
+  (interactive (cons (tinypng--read-token)
+                     (tinypng--read-from-and-to)))
   (with-current-buffer
       (let ((url-request-method "POST")
             (url-request-extra-headers
              `(("Authorization" .
-                ,(format "Basic %s" (base64-encode-string (concat "api:" tinypng-api-key))))))              
+                ,(format "Basic %s"
+                         (base64-encode-string (concat "api:" token))))))
             (url-request-data (with-temp-buffer
                                 (set-buffer-multibyte nil)
                                 (insert-file-contents-literally from)
