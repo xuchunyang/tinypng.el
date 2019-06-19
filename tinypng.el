@@ -1,4 +1,4 @@
-;;; tinypng.el --- Compress PNG and JPEG with TinyPNG.com  -*- lexical-binding: t; -*-
+;;; tinypng.el --- Compress PNG and JPEG with TinyPNG.com API  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Xu Chunyang
 
