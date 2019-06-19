@@ -7,7 +7,7 @@
 ;; Created: 2019-06-10T11:46:05+08:00
 ;; Package-Requires: ((emacs "25.1"))
 ;; Version: 0
-;; Keywords: convenience
+;; Keywords: multimedia
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
