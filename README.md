@@ -1,15 +1,15 @@
 # TinyPNG client for Emacs
 
-Compress .png or .jpeg from Emacs using [TinyPNG](https://tinypng.com/).
+Compress .png or .jpeg in Emacs using [TinyPNG](https://tinypng.com/)'s [API](https://tinypng.com/developers).
 
 ## Setup
 
-Get your API token and put it into `.authinfo[.gpg]` like the following:
-
-    machine api.tinify.com password YOUR_API_TOKEN
+Apply your API key on <https://tinypng.com/developers>. When you use `M-x
+tinypng` for the first time, you will be asked for the API key, then it will be
+saved in `~/.authinfo` or `~/.authinfo.gpg` using auth-source.
 
 ## Usage
 
-### `M-x tinypng from to`
+### `M-x tinypng FROM TO`
 
-Compress .png or jpeg file FROM and save the compressed file as TO.
+Compress image FROM and save the result into TO. FROM and TO are filenames.
