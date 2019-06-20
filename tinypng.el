@@ -104,7 +104,8 @@ FROM and TO can be the same, in this case, FROM is overwritten."
                  from (file-size-human-readable .input.size 'iec)
                  to (file-size-human-readable .output.size 'iec)
                  (format "-%.0f%%" (* 100 (- 1 .output.ratio)))
-                 (file-size-human-readable (- .input.size .output.size)))))))
+                 (file-size-human-readable (- .input.size .output.size)))
+        (kill-buffer)))))
 
 (provide 'tinypng)
 ;;; tinypng.el ends here
