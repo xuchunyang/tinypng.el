@@ -33,8 +33,13 @@
 
 (declare-function dired-get-filename "dired")
 
+(defvar tinypng-token nil)
+
 (defun tinypng--read-token ()
-  "Read and return your API key."
+  "Get Tinypng api token from ~/.authinfo.
+
+If it does not exist, you will be prompt for one, 
+then it will be saved."
   (let* ((plist (let ((auth-source-creation-prompts
                        '((secret . "Paste your API key of %h: "))))
                   (car (auth-source-search :host "api.tinify.com"
@@ -48,7 +53,7 @@
         (funcall token)
       token)))
 
-(defun tinypng--read-from-and-to ()
+(defun tinypng--read-from ()
   (let* ((file-at-point (pcase major-mode
                           ;; The ' pattern requires Emacs-25.1, the ` pattern
                           ;; works for older versions of Emacs, but I has no
@@ -56,38 +61,45 @@
                           ('image-mode buffer-file-name)
                           ('dired-mode (dired-get-filename nil t))
                           (_ (thing-at-point 'filename))))
+         (img-p (lambda (f)
+                  (member (file-name-extension f) '("png" "jpg" "jpeg"))))
          (valid (lambda (f)
                   (and (file-exists-p f)
-                       (let ((case-fold-search t))
-                         (string-match-p (rx "." (or "png" "jpg" "jpeg")) f)))))
+                       (funcall img-p f))))
          (default (and file-at-point
                        (funcall valid file-at-point)
                        file-at-point))
          (prompt (if default
                      (format "Compress image (default %s): " default)
                    "Compress image: "))
-         (from (read-file-name prompt nil default t))
-         (to (read-file-name
-              (format "Compress %s and save to (default %s): " from from)
-              nil from)))
-    (list from to)))
+         (from (read-file-name prompt nil default t nil img-p)))
+    from))
 
 ;;;###autoload
-(defun tinypng (token from to)
+(defun tinypng (from &optional to)
   "Compress PNG or JEPG image.
 
-TOKEN is your API key.
-FROM is the input filename.
-TO is the output filename.
-FROM and TO can be the same, in this case, FROM is overwritten."
-  (interactive (cons (tinypng--read-token)
-                     (tinypng--read-from-and-to)))
+FROM is path of the image you want to comparess.
+
+TO is the path you want to save the output to, if TO is the same
+as FROM, FROM will be overwritten.  TO can also be nil, then the
+output will not be save, instead open the output image in browser."
+  (interactive
+   (let* ((from (tinypng--read-from))
+          (to (and current-prefix-arg
+                   (read-file-name
+                    (format "Save output to (default %s): " from)))))
+     (list from to)))
+  (unless tinypng-token
+    (setq tinypng-token (tinypng--read-token)))
+  (unless tinypng-token
+    (user-error "[tinypng] No token found"))
   (with-current-buffer
       (let ((url-request-method "POST")
             (url-request-extra-headers
              `(("Authorization" .
                 ,(format "Basic %s"
-                         (base64-encode-string (concat "api:" token))))))
+                         (base64-encode-string (concat "api:" tinypng-token))))))
             (url-request-data (with-temp-buffer
                                 (set-buffer-multibyte nil)
                                 (insert-file-contents-literally from)
@@ -99,12 +111,20 @@ FROM and TO can be the same, in this case, FROM is overwritten."
     (let-alist (json-read)
       (if .error
           (error "%s: %s" .error .message)
-        (url-copy-file .output.url to t)
-        (message "Success! %s (%s) -> %s (%s)     %s (%s saved)"
-                 from (file-size-human-readable .input.size 'iec)
-                 to (file-size-human-readable .output.size 'iec)
-                 (format "-%.0f%%" (* 100 (- 1 .output.ratio)))
-                 (file-size-human-readable (- .input.size .output.size)))
+        (cond
+         (to
+          (url-copy-file .output.url to t)
+          (message "Success! %s (%s) -> %s (%s)     %s (%s saved)"
+                   from (file-size-human-readable .input.size 'iec)
+                   to (file-size-human-readable .output.size 'iec)
+                   (format "-%.0f%%" (* 100 (- 1 .output.ratio)))
+                   (file-size-human-readable (- .input.size .output.size))))
+         (t
+          (message "Decrease size from %d to %d, output url: %s"
+                   .input.size
+                   .output.size
+                   .output.url)
+          (browse-url .output.url)))
         (kill-buffer)))))
 
 (provide 'tinypng)
